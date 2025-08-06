@@ -1,0 +1,140 @@
+def utility_score(seq, target_seq, original_weights, student_id):
+  s = 0
+  max_len = max(len(seq), len(target_seq))
+
+  weights = []
+  for w in original_weights:
+    weights.append(w)
+
+
+  s_pos = -1
+  for i in range(len(seq)):
+    if seq[i] == 'S':
+      s_pos = i
+      break
+
+    if s_pos != -1:
+      first_two = int(str(student_id)[:2])
+      multiplier = first_two / 100.0
+
+      for i in range(s_pos, len(weights)):
+        weights[i] = weights[i]* multiplier
+
+    for i in range(max_len):
+      if i < len(seq):
+        gene_val = ord(seq[i])
+      else:
+        gene_val = 0
+
+      if i < len(target_seq):
+        target_val = ord(target_seq[i])
+
+      else:
+        target_val = 0
+
+      if i < len(weights):
+        weight = weights[i]
+      else:
+        weight = 1
+
+      s += weight * abs(gene_val - target_val)
+
+    return -s
+
+def min_max_algo(pool, curr_seq, target_seq, weights, student_id, maximizing_turn, a, b):
+  if len(pool) == 0:
+    score = utility_score(curr_seq, target_seq, weights, student_id)
+    return score, curr_seq
+
+  if maximizing_turn:
+    best_val = -999999
+    best_seq = curr_seq
+
+    for nuc in pool:
+      new_pool = []
+      for x in pool:
+        if x != nuc:
+          new_pool.append(x)
+
+      new_seq = curr_seq + nuc
+      val, seq = min_max_algo(new_pool, new_seq, target_seq, weights, student_id, False, a, b)
+
+      if val > best_val:
+        best_val=val
+        best_seq=seq
+
+      if val > a:
+        a = val
+
+      if b <= a:
+        break
+
+    return best_val, best_seq
+
+  else:
+    best_val = 999999
+    best_seq = curr_seq
+
+    for nuc in pool:
+      new_pool = []
+      for x in pool:
+        if x != nuc:
+          new_pool.append(x)
+
+      new_seq = curr_seq + nuc
+      val, seq = min_max_algo(new_pool, new_seq, target_seq, weights, student_id, True, a, b)
+
+      if val < best_val:
+        best_val = val
+        best_seq = seq
+
+      if val < b:
+        b = val
+      if b <= a:
+          break
+
+    return best_val, best_seq
+
+pool_str_normal = "A,T,C,G"
+nucleotides_normal = []
+for item in pool_str_normal.split(','):
+  nucleotides_normal.append(item.strip().upper())
+
+#special case
+pool_str_special = "A,T,C,G,S"
+nucleotides_special = []
+for item in pool_str_special.split(','):
+  nucleotides_special.append(item.strip().upper())
+
+
+target=input().upper()
+
+id_str = input()
+id_numbers = []
+for num in id_str.split():
+    id_numbers.append(int(num))
+
+student_id_full = ''
+for num in id_numbers:
+    student_id_full += str(num)
+
+target_len = len(target)
+if len(id_numbers) >= target_len:
+    w = []
+    start_idx = len(id_numbers) - target_len
+    for i in range(start_idx, len(id_numbers)):
+        w.append(id_numbers[i])
+else:
+  w = id_numbers
+
+normal_score, normal_seq = min_max_algo(nucleotides_normal, "", target, w, student_id_full, True, -999999, 999999)
+special_score, special_seq = min_max_algo(nucleotides_special, "", target, w, student_id_full, True, -999999, 999999)
+
+if special_score > normal_score:
+    print("YES")
+else:
+    print("NO")
+
+print("With special nucleotide")
+print(f"Best gene sequence generated: {special_seq}")
+print(f"Utility score: {special_score}")
